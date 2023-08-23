@@ -61,8 +61,12 @@ public class AuthHandler : MonoBehaviour
     {
         User user = new User();
         user.username = usernameInputField.text;
+        Debug.Log("Mandarina COSMICA SALVAJE ANCESTRAL"+trampa.text);
+        
         if (int.TryParse(trampa.text, out _)) user.data.score = int.Parse(trampa.text);
         
+        string data = JsonUtility.ToJson(user);
+        StartCoroutine(EditScoreData(data));
     }
 
     IEnumerator GetProfile(string username)
@@ -83,6 +87,8 @@ public class AuthHandler : MonoBehaviour
                 AuthData data = JsonUtility.FromJson<AuthData>(www.downloadHandler.text);
                 Debug.Log("Sesion Activada de usuario " + data.usuario.username);
                 // SceneManager.LoadScene("Game");
+                
+                
             }
         }
 
@@ -132,6 +138,7 @@ public class AuthHandler : MonoBehaviour
                 PlayerPrefs.SetString("token", data.token);
                 PlayerPrefs.SetString("username", data.username);
                 Debug.Log("Tu puntaje es  " + data.usuario.data.score);
+                StartCoroutine(ScoreChart(json));
             }
             else
             {
@@ -171,7 +178,6 @@ public class AuthHandler : MonoBehaviour
     {
         UnityWebRequest www = UnityWebRequest.Get(apiUrl + "usuarios/");
         www.SetRequestHeader("x-token", token);
-        www.method = "PATCH";
         yield return www.Send();
         if (www.result == UnityWebRequest.Result.ConnectionError) Debug.Log("Ese pana no existe");
         else
@@ -223,6 +229,11 @@ public class User
     public string username;
     public bool estado;
     public Data data;
+
+    public User()
+    {
+        data = new Data();
+    }
 }
 
 [System.Serializable]

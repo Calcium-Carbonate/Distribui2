@@ -18,6 +18,8 @@ public class AuthHandler : MonoBehaviour
     private string token;
     private string username;
 
+    [SerializeField] TMP_InputField trampa;
+    [SerializeField] private TMP_Text[] scoreBoard;
     private void Start()
     {
         token = PlayerPrefs.GetString("token");
@@ -53,6 +55,14 @@ public class AuthHandler : MonoBehaviour
         string json = JsonUtility.ToJson(_authData);
 
         StartCoroutine(SendLogin(json));
+    }
+
+    public void scoreChanger()
+    {
+        User user = new User();
+        user.username = usernameInputField.text;
+        if (int.TryParse(trampa.text, out _)) user.data.score = int.Parse(trampa.text);
+        
     }
 
     IEnumerator GetProfile(string username)
@@ -129,51 +139,69 @@ public class AuthHandler : MonoBehaviour
             }
         }
 
-        IEnumerator EditScoreData(string json)
-        {
-            UnityWebRequest www = UnityWebRequest.Put(apiUrl + "usuarios/" + username, json);
-            www.SetRequestHeader("x-token", token);
-            www.SetRequestHeader("Content-Type", "application/json");
-            www.method = "PATCH";
-            yield return www.Send();
 
-        }
-
-        IEnumerator ScoreChart(string json)
+    }
+    
+    IEnumerator EditScoreData(string json)
+    {
+        UnityWebRequest www = UnityWebRequest.Put(apiUrl + "usuarios/" + username, json);
+        www.SetRequestHeader("x-token", token);
+        www.SetRequestHeader("Content-Type", "application/json");
+        www.method = "PATCH";
+        yield return www.Send();
+        if (www.result == UnityWebRequest.Result.ConnectionError) Debug.Log("Ese pana no existe");
+        else
         {
-            UnityWebRequest www = UnityWebRequest.Get(apiUrl + "usuarios/");
-            www.SetRequestHeader("x-token", token);
-            www.method = "PATCH";
-            yield return www.Send();
-            if (www.result == UnityWebRequest.Result.ConnectionError) Debug.Log("Ese pana no existe");
+            Debug.Log(www.downloadHandler.text);
+            if (www.responseCode == 200)
+            {
+                AuthData data = JsonUtility.FromJson<AuthData>(www.downloadHandler.text);
+                StartCoroutine(ScoreChart(json));
+
+            }
             else
             {
-                Debug.Log(www.downloadHandler.text);
-                if (www.responseCode == 200)
-                {
-                    UserList jsonData = JsonUtility.FromJson<UserList>(www.downloadHandler.text);
-
-                    List<User> userList = jsonData.usuarios;
-                    List<User> usuariosOrdenados = userList.OrderByDescending(x => x.data.score).ToList<User>();
-
-                    int index = 0;
-
-                    foreach (User user in usuariosOrdenados)
-                    {
-                        if (index <= 4)
-                        {
-                            string userScore = index + 1 + " - " + user.username + " Score: " + user.data.score;
-                        }
-                    }
-
-                }
-                else
-                {
-                    Debug.Log(www.error);
-                }
+                Debug.Log(www.error);
             }
         }
 
+    }
+
+    IEnumerator ScoreChart(string json)
+    {
+        UnityWebRequest www = UnityWebRequest.Get(apiUrl + "usuarios/");
+        www.SetRequestHeader("x-token", token);
+        www.method = "PATCH";
+        yield return www.Send();
+        if (www.result == UnityWebRequest.Result.ConnectionError) Debug.Log("Ese pana no existe");
+        else
+        {
+            Debug.Log(www.downloadHandler.text);
+            if (www.responseCode == 200)
+            {
+                UserList jsonData = JsonUtility.FromJson<UserList>(www.downloadHandler.text);
+
+                List<User> userList = jsonData.usuarios;
+                List<User> usuariosOrdenados = userList.OrderByDescending(x => x.data.score).ToList<User>();
+
+                int index = 0;
+
+                foreach (User user in usuariosOrdenados)
+                {
+                    if (index <= 4)
+                    {
+                        string userScore = index + 1 + " - " + user.username + " Score: " + user.data.score;
+                        scoreBoard[index].text = userScore;
+                        index++;
+                    }
+                }
+
+            }
+            else
+            {
+                Debug.Log(www.error);
+            }
+        }
     }
 }
 

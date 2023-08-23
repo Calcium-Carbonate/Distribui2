@@ -1,9 +1,11 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEditor.PackageManager.Requests;
 using UnityEngine;
 using UnityEngine.Networking;
+using UnityEngine.SceneManagement;
 
 public class AuthHandler : MonoBehaviour
 { 
@@ -12,8 +14,26 @@ public class AuthHandler : MonoBehaviour
     
    [SerializeField] private TMP_InputField usernameInputField;
    [SerializeField] private TMP_InputField passwordInputField;
+   private string token;
+   private string username;
+
+   private void Start()
+   {
+       token = PlayerPrefs.GetString("token");
+       
+       if (string.IsNullOrEmpty(token))
+       {
+           Debug.Log("No hay Token almacenado");
+       }
+       else
+       {
+           username = PlayerPrefs.GetString("username");
+           StartCoroutine(GetProfile(username));
+       }
+   }
+
    
-    public void Register()
+   public void Register()
     {
         AuthData _authData = new AuthData();
         _authData.username = usernameInputField.text;
@@ -33,7 +53,29 @@ public class AuthHandler : MonoBehaviour
 
         StartCoroutine(SendLogin(json));
     }
-    
+
+    IEnumerator GetProfile(string username)
+    {
+        UnityWebRequest www = UnityWebRequest.Get(apiUrl+ "usuarios/" +username);
+        www.SetRequestHeader("x-token", token);
+        yield return www.SendWebRequest();
+        
+        if (www.isNetworkError)
+        {
+            Debug.Log("NETWORK ERROR: "+www.error);
+        }
+        else
+        {
+            Debug.Log(www.downloadHandler.text);
+            if (www.responseCode == 200)
+            {
+                AuthData data = JsonUtility.FromJson<AuthData>(www.downloadHandler.text);
+                Debug.Log("Sesion Activada de usuario "+data.usuario.username);
+               // SceneManager.LoadScene("Game");
+            }
+        }
+      
+    }
     //REGISTER
     IEnumerator SendRegister(string json)
     {
@@ -72,7 +114,10 @@ public class AuthHandler : MonoBehaviour
             if (www.responseCode == 200)
             {
                 AuthData data = JsonUtility.FromJson<AuthData>(www.downloadHandler.text);
+                
                 Debug.Log("El usuario inicio sesión con éxito con el ID "+data.usuario._id);
+                PlayerPrefs.SetString("token",data.token);
+                PlayerPrefs.SetString("username",data.username);
             }
             else
             {
